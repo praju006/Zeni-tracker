@@ -41,7 +41,7 @@ const Auth = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4 glow-emerald">
             <Wallet className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-gradient">ExpenseIQ</h1>
+          <h1 className="text-3xl font-bold text-gradient">Zeni</h1>
           <p className="text-muted-foreground mt-2">Smart expense tracking made simple</p>
         </div>
 
