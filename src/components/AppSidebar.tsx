@@ -28,7 +28,7 @@ export function AppSidebar() {
           <Wallet className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-foreground">ExpenseIQ</h1>
+          <h1 className="text-lg font-bold text-foreground">Zeni</h1>
           <p className="text-xs text-muted-foreground">Smart Tracker</p>
         </div>
       </div>
