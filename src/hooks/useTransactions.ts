@@ -16,6 +16,8 @@ export interface Transaction {
   updated_at: string;
 }
 
+/* ---------------- FETCH TRANSACTIONS ---------------- */
+
 export function useTransactions() {
   const { user } = useAuth();
 
@@ -25,7 +27,9 @@ export function useTransactions() {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
+        .eq('user_id', user!.id)   // IMPORTANT
         .order('transaction_date', { ascending: false });
+
       if (error) throw error;
       return data as Transaction[];
     },
@@ -33,30 +37,38 @@ export function useTransactions() {
   });
 }
 
+/* ---------------- ADD TRANSACTION ---------------- */
+
 export function useAddTransaction() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (tx: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (
+      tx: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+    ) => {
       const { data, error } = await supabase
         .from('transactions')
-        .insert({ ...tx, user_id: user!.id })
+        .insert({ ...tx, user_id: user!.id }) // already correct
         .select()
         .single();
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
       toast.success('Transaction added!');
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.message),
   });
 }
 
+/* ---------------- UPDATE TRANSACTION ---------------- */
+
 export function useUpdateTransaction() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...tx }: Partial<Transaction> & { id: string }) => {
@@ -64,31 +76,41 @@ export function useUpdateTransaction() {
         .from('transactions')
         .update(tx)
         .eq('id', id)
+        .eq('user_id', user!.id)   // IMPORTANT SECURITY
         .select()
         .single();
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
       toast.success('Transaction updated!');
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.message),
   });
 }
 
+/* ---------------- DELETE TRANSACTION ---------------- */
+
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user!.id); // IMPORTANT SECURITY
+
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
       toast.success('Transaction deleted!');
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.message),
   });
 }
