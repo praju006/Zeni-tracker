@@ -4,61 +4,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------- BASE THEME ---------------- */
+
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 96%;
+    /* MAIN BACKGROUND */
+    --background: 260 60% 98%;
+    --foreground: 240 20% 15%;
 
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 96%;
+    /* CARDS */
+    --card: 0 0% 100%;
+    --card-foreground: 240 20% 15%;
 
-    --popover: 222 47% 9%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 20% 15%;
 
-    --primary: 160 84% 39%;
-    --primary-foreground: 222 47% 6%;
+    /* PRIMARY PURPLE */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 210 40% 90%;
+    /* SECONDARY */
+    --secondary: 260 40% 94%;
+    --secondary-foreground: 240 15% 25%;
 
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 55%;
+    /* MUTED */
+    --muted: 260 20% 95%;
+    --muted-foreground: 240 10% 45%;
 
-    --accent: 160 60% 20%;
-    --accent-foreground: 160 84% 60%;
+    /* ACCENT */
+    --accent: 262 60% 90%;
+    --accent-foreground: 262 83% 40%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    /* DESTRUCTIVE */
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 222 20% 18%;
-    --input: 222 20% 18%;
-    --ring: 160 84% 39%;
+    /* BORDERS & INPUTS */
+    --border: 260 20% 88%;
+    --input: 260 20% 92%;
+    --ring: 262 83% 58%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 30% 12%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 222 20% 14%;
-    --sidebar-ring: 160 84% 39%;
+    /* SIDEBAR */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 15% 30%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 30% 94%;
+    --sidebar-accent-foreground: 240 15% 20%;
+    --sidebar-border: 260 20% 90%;
+    --sidebar-ring: 262 83% 58%;
 
-    --glass: 222 47% 11% / 0.6;
-    --glass-border: 222 20% 20% / 0.4;
-    --emerald-glow: 160 84% 39% / 0.15;
-    --chart-income: 160 84% 39%;
-    --chart-expense: 0 72% 51%;
-    --chart-1: 160 84% 39%;
+    /* GLASS EFFECT */
+    --glass: 0 0% 100% / 0.6;
+    --glass-border: 262 40% 80% / 0.3;
+
+    /* CHART COLORS */
+    --chart-income: 262 83% 58%;
+    --chart-expense: 0 72% 55%;
+    --chart-1: 262 83% 58%;
     --chart-2: 200 80% 50%;
     --chart-3: 280 70% 55%;
     --chart-4: 40 90% 55%;
     --chart-5: 330 70% 55%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -69,6 +80,8 @@
   }
 }
 
+/* ---------------- UTILITIES ---------------- */
+
 @layer utilities {
   .glass {
     @apply bg-card/60 backdrop-blur-xl border border-border/40;
@@ -78,12 +91,12 @@
     @apply hover:bg-card/80 hover:border-border/60 transition-all duration-300;
   }
 
-  .glow-emerald {
-    box-shadow: 0 0 40px hsl(160 84% 39% / 0.1), 0 0 80px hsl(160 84% 39% / 0.05);
+  .glow-purple {
+    box-shadow: 0 0 40px hsl(262 83% 58% / 0.15), 0 0 80px hsl(262 83% 58% / 0.08);
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-300;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400;
   }
 
   .stat-card {
