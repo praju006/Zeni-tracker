@@ -1,220 +1,140 @@
-import { TrendingUp, TrendingDown, Wallet, RotateCcw } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
-import type { Transaction } from '@/hooks/useTransactions';
-import { Button } from '@/components/ui/button';
-import { useBudget, useSetBudget } from '@/hooks/useBudget';
-import { useGoals } from '@/hooks/useGoals';
-import { GoalCard } from '@/components/GoalCard'; // NEW
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-
-interface Props {
-  transactions: Transaction[];
-  onCurrencyChange?: (currency: string) => void;
-}
-
-export function DashboardStats({ transactions, onCurrencyChange }: Props) {
-  const { data: goals } = useGoals(); // HOOK OK HERE
+export default function WalletDashboard() {
   const { user } = useAuth();
-  const [currency, setCurrency] = useState('INR');
 
-  /* ----------- BUDGET STATE ----------- */
-  const [budgetOpen, setBudgetOpen] = useState(false);
-  const [budgetValue, setBudgetValue] = useState('');
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const month = new Date().toISOString().slice(0, 7);
-  const { data: budget } = useBudget(month);
-  const setBudget = useSetBudget();
+  // ---------- FETCH TRANSACTIONS ----------
+  const fetchTransactions = async () => {
+    if (!user) return;
+    setLoading(true);
 
-  /* ----------- CALCULATIONS ----------- */
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error) setTransactions(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [user]);
+
+  // ---------- WALLET CALCULATION ----------
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const balance = totalIncome - totalExpense;
+  const walletBalance = totalIncome - totalExpense;
 
-  /* ----------- BUDGET WARNING ----------- */
   useEffect(() => {
-    if (!budget?.limit_amount) return;
+  if (!user) return;
 
-    const percent = totalExpense / budget.limit_amount;
+  fetchTransactions();
 
-    if (percent > 1) toast.error('Budget Exceeded!');
-    else if (percent > 0.8) toast.warning('80% Budget Used');
-  }, [totalExpense, budget]);
+  const channel = supabase
+    .channel("realtime-transactions")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "transactions",
+        filter: `user_id=eq.${user.id}`,
+      },
+      () => {
+        fetchTransactions(); // auto refresh
+      }
+    )
+    .subscribe();
 
-  /* ----------- FORMAT MONEY ----------- */
-  const formatMoney = (amount: number) =>
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'INR',
-    }).format(amount);
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user]);
 
-  /* ----------- RESET WALLET ----------- */
-  const handleResetWallet = async () => {
-    if (!confirm('Delete all transactions?')) return;
+  // ---------- ADD TRANSACTION ----------
+  const addTransaction = async (newTx) => {
+    await supabase.from("transactions").insert([
+      {
+        ...newTx,
+        user_id: user.id,
+      },
+    ]);
 
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('user_id', user?.id);
-
-    if (!error) {
-      toast.success('Wallet Reset!');
-      window.location.reload();
-    }
+    fetchTransactions(); // refresh
   };
 
-  const stats = [
-    {
-      label: 'Total Balance',
-      value: formatMoney(balance),
-      icon: Wallet,
-      trend: balance >= 0 ? 'positive' : 'negative',
-      className: 'glow-purple',
-    },
-    {
-      label: 'Total Income',
-      value: formatMoney(totalIncome),
-      icon: TrendingUp,
-      trend: 'positive' as const,
-      className: '',
-    },
-    {
-      label: 'Total Expense',
-      value: formatMoney(totalExpense),
-      icon: TrendingDown,
-      trend: 'negative' as const,
-      className: '',
-    },
-  ];
+  // ---------- DELETE TRANSACTION ----------
+  const deleteTransaction = async (id) => {
+    await supabase.from("transactions").delete().eq("id", id);
+    fetchTransactions();
+  };
+
+  // ---------- RESET WALLET ----------
+  const resetWallet = async () => {
+    await supabase
+      .from("transactions")
+      .delete()
+      .eq("user_id", user.id);
+
+    fetchTransactions();
+  };
 
   return (
-    <>
-      {/* TOP CONTROLS */}
-      <div className="flex flex-wrap gap-3 mb-4 justify-between items-center">
-        <Select
-          value={currency}
-          onValueChange={(val) => {
-            setCurrency(val);
-            onCurrencyChange?.(val);
-          }}
-        >
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="INR">₹ INR</SelectItem>
-            <SelectItem value="USD">$ USD</SelectItem>
-            <SelectItem value="EUR">€ EUR</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="p-6 space-y-4">
+      <h2 className="text-2xl font-bold">Wallet Balance</h2>
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setBudgetOpen(true)}>
-            Set Budget
-          </Button>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <h1 className="text-4xl font-semibold">₹ {walletBalance}</h1>
+      )}
 
-          <Button variant="destructive" onClick={handleResetWallet} className="gap-2">
-            <RotateCcw className="w-4 h-4" />
-            Reset Wallet
-          </Button>
-        </div>
+      <div className="flex gap-4">
+        <p className="text-green-500">Income: ₹ {totalIncome}</p>
+        <p className="text-red-500">Expense: ₹ {totalExpense}</p>
       </div>
 
-      {/* STAT CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map((stat, i) => (
+      <button
+        onClick={resetWallet}
+        className="bg-red-500 text-white px-4 py-2 rounded"
+      >
+        Reset Wallet
+      </button>
+
+      <div className="mt-6">
+        <h3 className="text-xl font-semibold">Transactions</h3>
+
+        {transactions.map((t) => (
           <div
-            key={stat.label}
-            className={`stat-card animate-fade-in ${stat.className}`}
-            style={{ animationDelay: `${i * 100}ms` }}
+            key={t.id}
+            className="flex justify-between border p-2 rounded mt-2"
           >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">{stat.label}</span>
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  stat.trend === 'positive' ? 'bg-primary/10' : 'bg-destructive/10'
-                }`}
-              >
-                <stat.icon
-                  className={`w-5 h-5 ${
-                    stat.trend === 'positive' ? 'text-primary' : 'text-destructive'
-                  }`}
-                />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground animate-count-up">
-              {stat.value}
-            </p>
+            <span>
+              {t.title} — ₹ {t.amount}
+            </span>
+
+            <button
+              onClick={() => deleteTransaction(t.id)}
+              className="text-red-500"
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>
-
-      {/* GOALS SECTION */}
-      <div className="mt-6 grid gap-3">
-        {goals?.map((g: any) => (
-          <GoalCard
-            key={g.id}
-            title={g.title}
-            saved={balance}
-            target={g.target_amount}
-          />
-        ))}
-      </div>
-
-      {/* BUDGET MODAL */}
-      <Dialog open={budgetOpen} onOpenChange={setBudgetOpen}>
-        <DialogContent className="glass sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Set Monthly Budget</DialogTitle>
-          </DialogHeader>
-
-          <Input
-            type="number"
-            placeholder="₹ Enter amount..."
-            value={budgetValue}
-            onChange={(e) => setBudgetValue(e.target.value)}
-            className="mt-2"
-          />
-
-          <Button
-            className="mt-4 w-full"
-            onClick={() => {
-              if (!budgetValue) return;
-              setBudget.mutate({
-                month,
-                amount: Number(budgetValue),
-              });
-              setBudgetOpen(false);
-              setBudgetValue('');
-              toast.success('Budget Saved!');
-            }}
-          >
-            Save Budget
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </>
+    </div>
   );
 }

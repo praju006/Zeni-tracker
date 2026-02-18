@@ -1,4 +1,4 @@
-import { DashboardStats } from '@/components/DashboardStats';
+import  DashboardStats  from '@/components/DashboardStats';
 import { RecentTransactions } from '@/components/RecentTransactions';
 import { SpendingPieChart } from '@/components/charts/SpendingPieChart';
 import { MonthlyTrendChart } from '@/components/charts/MonthlyTrendChart';
